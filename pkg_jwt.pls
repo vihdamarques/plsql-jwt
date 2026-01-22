@@ -25,18 +25,24 @@ create or replace package pkg_jwt as
     iss varchar2(255), -- Issuer
     sub varchar2(255), -- Subject
     aud varchar2(255), -- Audience
-    exp number, -- Expiration Time
-    nbf number, -- Not Before
-    iat number, -- Issued At
+    exp timestamp with time zone, -- Expiration Time
+    nbf timestamp with time zone, -- Not Before
+    iat timestamp with time zone, -- Issued At
     jti varchar2(255), -- JWT ID
     -- Custom Claims
     claims t_claims -- Private / Public Claims
   );
+  type r_jwt is record (
+    header    r_header,
+    payload   r_payload,
+    signature varchar2(32767)
+  );
 
-  function get_epoch(p_timestamp in timestamp, p_timezone varchar2 default 'UTC') return number;
+  function encode(p_header  in r_header  default cast(null as r_header),
+                  p_payload in r_payload default cast(null as r_payload),
+                  p_key     in varchar2) return varchar2;
 
-  function get_token(p_header  in r_header  default cast(null as r_header),
-                     p_payload in r_payload default cast(null as r_payload),
-                     p_key     in varchar2) return varchar2;
+  function decode(p_jwt      in varchar2,
+                  p_timezone in varchar2 default sessiontimezone) return r_jwt;
 end pkg_jwt;
 /
