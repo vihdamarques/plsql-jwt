@@ -51,7 +51,7 @@ end;
 /
 ````
 
-#### Signed with RSA-SHA256 (Assimetric Private Key)
+#### Signed with RSA-SHA256 (Asymmetric Private Key)
 
 ````sql
 set serveroutput on size unlimited
