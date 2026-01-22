@@ -16,7 +16,7 @@ Oracle Database 19c+
   - RSA-SHA384
   - RSA-SHA512
 - Decode JWT Token
-- Verify JWT Token against a key (Asymmetric or Plain Text) and Expiration Time (If Provided)
+- Verify JWT Token against a key (Asymmetric or Plain Text) and Expiration Time (if p_timestamp is provided)
 
 ## Examples
 
@@ -98,9 +98,9 @@ begin
   dbms_output.put_line('iss: ' || l_jwt.payload.iss);
   dbms_output.put_line('sub: ' || l_jwt.payload.sub);
   dbms_output.put_line('aud: ' || l_jwt.payload.aud);
-  dbms_output.put_line('exp: ' || l_jwt.payload.exp at time zone sessiontimezone);
-  dbms_output.put_line('nbf: ' || l_jwt.payload.nbf at time zone sessiontimezone);
-  dbms_output.put_line('iat: ' || l_jwt.payload.iat at time zone sessiontimezone);
+  dbms_output.put_line('exp: ' || l_jwt.payload.exp);
+  dbms_output.put_line('nbf: ' || l_jwt.payload.nbf);
+  dbms_output.put_line('iat: ' || l_jwt.payload.iat);
   dbms_output.put_line('jti: ' || l_jwt.payload.jti);
 
   l_claim_name := l_jwt.payload.claims.first;
