@@ -25,9 +25,9 @@ create or replace package pkg_jwt as
     iss varchar2(255), -- Issuer
     sub varchar2(255), -- Subject
     aud varchar2(255), -- Audience
-    exp timestamp with time zone, -- Expiration Time
-    nbf timestamp with time zone, -- Not Before
-    iat timestamp with time zone, -- Issued At
+    exp date, -- Expiration Time
+    nbf date, -- Not Before
+    iat date, -- Issued At
     jti varchar2(255), -- JWT ID
     -- Custom Claims
     claims t_claims -- Private / Public Claims
@@ -46,8 +46,8 @@ create or replace package pkg_jwt as
 
   function decode(p_jwt in varchar2) return r_jwt;
 
-  function verify(p_jwt       in varchar2,
-                  p_key       in varchar2,
-                  p_timestamp in timestamp with time zone default null) return boolean;
+  function verify(p_jwt  in varchar2,
+                  p_key  in varchar2,
+                  p_date in date default null) return boolean;
 end pkg_jwt;
 /
