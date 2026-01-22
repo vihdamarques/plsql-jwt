@@ -37,7 +37,7 @@ begin
   l_payload.iss := 'my_issuer';
   l_payload.sub := 'my_subject';
   l_payload.aud := 'my_audience';
-  l_payload.iat := systimestamp;
+  l_payload.iat := sysdate;
   l_payload.exp := l_payload.iat + interval '1' hour; -- 1 hour expiration
   l_payload.claims('custom_role') := 'admin';
   --
@@ -67,7 +67,7 @@ begin
   l_payload.iss := 'my_issuer';
   l_payload.sub := 'my_subject';
   l_payload.aud := 'my_audience';
-  l_payload.iat := systimestamp;
+  l_payload.iat := sysdate;
   l_payload.exp := l_payload.iat + interval '1' hour; -- 1 hour expiration
   l_payload.claims('custom_role') := 'admin';
   --
@@ -123,9 +123,9 @@ set serveroutput on size unlimited
 declare
   l_valid boolean;
 begin
-  l_valid := pkg_jwt.verify(p_jwt       => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJteV9pc3N1ZXIiLCJzdWIiOiJteV9zdWJqZWN0IiwiYXVkIjoibXlfYXVkaWVuY2UiLCJleHAiOjE3NjkxMTAzMTcsIm5iZiI6bnVsbCwiaWF0IjoxNzY5MTA2NzE3LCJqdGkiOm51bGwsImN1c3RvbV9yb2xlIjoiYWRtaW4ifQ.63X6XXVrlGqA0kKu4s2Ct-302_PQsDC22-xGORkmYFM',
-                            p_key       => 'my_secret_key',
-                            p_timestamp => systimestamp);
+  l_valid := pkg_jwt.verify(p_jwt  => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJteV9pc3N1ZXIiLCJzdWIiOiJteV9zdWJqZWN0IiwiYXVkIjoibXlfYXVkaWVuY2UiLCJleHAiOjE3NjkxMTAzMTcsIm5iZiI6bnVsbCwiaWF0IjoxNzY5MTA2NzE3LCJqdGkiOm51bGwsImN1c3RvbV9yb2xlIjoiYWRtaW4ifQ.63X6XXVrlGqA0kKu4s2Ct-302_PQsDC22-xGORkmYFM',
+                            p_key  => 'my_secret_key',
+                            p_date => sysdate);
   dbms_output.put_line('JWT is ' || case when l_valid then 'Valid' else 'Invalid' end);
 end;
 /
