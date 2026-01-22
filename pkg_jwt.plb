@@ -9,15 +9,15 @@ create or replace package body pkg_jwt as
     return p_typ = C_TYP_JWT;
   end is_valid_typ;
 
-  function timestamp2epoch(p_timestamp in timestamp with time zone) return number is
+  function date2epoch(p_date in date) return number is
   begin
-    return trunc((cast(p_timestamp at time zone 'UTC' as date) - to_date('01/01/1970', 'dd/mm/yyyy')) * 24 * 60 * 60);
-  end timestamp2epoch;
+    return trunc((cast(p_date at time zone 'UTC' as date) - to_date('01/01/1970', 'dd/mm/yyyy')) * 24 * 60 * 60);
+  end date2epoch;
 
-  function epoch2timestamp(p_epoch in number) return timestamp with time zone is
+  function epoch2date(p_epoch in number) return date is
   begin
-    return from_tz(cast(to_date('01/01/1970', 'dd/mm/yyyy') + (p_epoch / 24 / 60 / 60) as timestamp), 'UTC') at time zone sessiontimezone;
-  end epoch2timestamp;
+    return cast(from_tz(cast(to_date('01/01/1970', 'dd/mm/yyyy') + (p_epoch / 24 / 60 / 60) as timestamp), 'UTC') at time zone sessiontimezone as date);
+  end epoch2date;
 
   function base64url_encode(p_string in varchar2) return varchar2 is
   begin
@@ -83,9 +83,9 @@ create or replace package body pkg_jwt as
     l_payload_json.put('iss', p_payload.iss);
     l_payload_json.put('sub', p_payload.sub);
     l_payload_json.put('aud', p_payload.aud);
-    l_payload_json.put('exp', timestamp2epoch(p_payload.exp));
-    l_payload_json.put('nbf', timestamp2epoch(p_payload.nbf));
-    l_payload_json.put('iat', timestamp2epoch(p_payload.iat));
+    l_payload_json.put('exp', date2epoch(p_payload.exp));
+    l_payload_json.put('nbf', date2epoch(p_payload.nbf));
+    l_payload_json.put('iat', date2epoch(p_payload.iat));
     l_payload_json.put('jti', p_payload.jti);
 
     l_claim_name := p_payload.claims.first;
@@ -152,9 +152,9 @@ create or replace package body pkg_jwt as
     l_jwt.payload.iss := l_payload_json.get_string('iss');
     l_jwt.payload.sub := l_payload_json.get_string('sub');
     l_jwt.payload.aud := l_payload_json.get_string('aud');
-    l_jwt.payload.exp := epoch2timestamp(l_payload_json.get_number('exp'));
-    l_jwt.payload.nbf := epoch2timestamp(l_payload_json.get_number('nbf'));
-    l_jwt.payload.iat := epoch2timestamp(l_payload_json.get_number('iat'));
+    l_jwt.payload.exp := epoch2date(l_payload_json.get_number('exp'));
+    l_jwt.payload.nbf := epoch2date(l_payload_json.get_number('nbf'));
+    l_jwt.payload.iat := epoch2date(l_payload_json.get_number('iat'));
     l_jwt.payload.jti := l_payload_json.get_string('jti');
 
     l_payload_claims := l_payload_json.get_keys();
@@ -169,7 +169,9 @@ create or replace package body pkg_jwt as
     return l_jwt;
   end decode;
 
-  function verify(p_jwt in varchar2, p_key in varchar2, p_timestamp in timestamp with time zone default null) return boolean is
+  function verify(p_jwt  in varchar2,
+                  p_key  in varchar2,
+                  p_date in date default null) return boolean is
     l_jwt         r_jwt;
     l_signed_data varchar2(32767);
   begin
@@ -178,6 +180,7 @@ create or replace package body pkg_jwt as
     l_signed_data := l_jwt.header_base64 || '.' || l_jwt.payload_base64;
 
     return l_jwt.signature_base64 = sign(p_data => l_signed_data, p_key => p_key, p_alg => l_jwt.header.alg)
-           and (p_timestamp is null or l_jwt.payload.exp is null or l_jwt.payload.exp >= p_timestamp);
+           and (p_date is null or l_jwt.payload.exp is null or l_jwt.payload.exp >= p_date);
   end verify;
 end pkg_jwt;
+/
