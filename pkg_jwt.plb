@@ -9,10 +9,15 @@ create or replace package body pkg_jwt as
     return p_typ = C_TYP_JWT;
   end is_valid_typ;
 
-  function get_epoch(p_timestamp in timestamp, p_timezone varchar2 default 'UTC') return number is
+  function timestamp2epoch(p_timestamp in timestamp with time zone) return number is
   begin
-    return trunc((cast(p_timestamp at time zone p_timezone as date) - to_date('01/01/1970', 'dd/mm/yyyy')) * 24 * 60 * 60);
-  end get_epoch;
+    return trunc((cast(p_timestamp as date) - to_date('01/01/1970', 'dd/mm/yyyy')) * 24 * 60 * 60);
+  end timestamp2epoch;
+
+  function epoch2timestamp(p_epoch in number, p_timezone in varchar default sessiontimezone) return timestamp with time zone is
+  begin
+    return from_tz(cast(to_date('01/01/1970', 'dd/mm/yyyy') + (p_epoch / 24 / 60 / 60) as timestamp), p_timezone);
+  end epoch2timestamp;
 
   function base64url_encode(p_string in varchar2) return varchar2 is
   begin
@@ -24,18 +29,23 @@ create or replace package body pkg_jwt as
     return translate(utl_i18n.raw_to_char(utl_encode.base64_encode(p_raw), G_CHARSET), '+/=' || chr(10) || chr(13), '-_');
   end base64url_encode;
 
-  function get_token(p_header  in r_header  default cast(null as r_header),
-                     p_payload in r_payload default cast(null as r_payload),
-                     p_key     in varchar2) return varchar2 is
+  function base64url_decode(p_string in varchar2) return varchar2 is
+  begin
+    return utl_i18n.raw_to_char(utl_encode.base64_decode(utl_i18n.string_to_raw(translate(p_string, '-_', '+/'), G_CHARSET)), G_CHARSET);
+  end base64url_decode;
+
+  function encode(p_header  in r_header  default cast(null as r_header),
+                  p_payload in r_payload default cast(null as r_payload),
+                  p_key     in varchar2) return varchar2 is
     l_header_json      json_object_t := json_object_t();
-    l_header_base64    varchar2(4000);
+    l_header_base64    varchar2(32767);
     l_payload_json     json_object_t := json_object_t();
-    l_payload_base64   varchar2(4000);
-    l_signature        raw(4000);
-    l_signature_base64 varchar2(4000);
-    l_jwt              varchar2(4000);
+    l_payload_base64   varchar2(32767);
+    l_signature        raw(32767);
+    l_signature_base64 varchar2(32767);
+    l_jwt              varchar2(32767);
     l_claim_name       s_claim_name;
-    l_key             varchar2(4000) := p_key;
+    l_key              varchar2(32767) := p_key;
   begin
     if not is_valid_alg(p_header.alg) then
       raise_application_error(-20001, 'Invalid algorithm specified in header.');
@@ -52,9 +62,9 @@ create or replace package body pkg_jwt as
     l_payload_json.put('iss', p_payload.iss);
     l_payload_json.put('sub', p_payload.sub);
     l_payload_json.put('aud', p_payload.aud);
-    l_payload_json.put('exp', p_payload.exp);
-    l_payload_json.put('nbf', p_payload.nbf);
-    l_payload_json.put('iat', p_payload.iat);
+    l_payload_json.put('exp', timestamp2epoch(p_payload.exp));
+    l_payload_json.put('nbf', timestamp2epoch(p_payload.nbf));
+    l_payload_json.put('iat', timestamp2epoch(p_payload.iat));
     l_payload_json.put('jti', p_payload.jti);
 
     l_claim_name := p_payload.claims.first;
@@ -97,6 +107,49 @@ create or replace package body pkg_jwt as
     l_jwt := l_jwt || '.' || l_signature_base64;
 
     return l_jwt;
-  end get_token;
+  end encode;
+
+  function decode(p_jwt      in varchar2,
+                  p_timezone in varchar2 default sessiontimezone) return r_jwt is
+    l_jwt              r_jwt;
+    l_header_base64    varchar2(32767);
+    l_payload_base64   varchar2(32767);
+    l_signature_base64 varchar2(32767);
+    l_header_json      json_object_t := json_object_t();
+    l_payload_json     json_object_t := json_object_t();
+    l_payload_claims   json_key_list;
+    l_claim_name       s_claim_name;
+  begin
+    l_header_base64    := regexp_replace(p_jwt, '^([^\.]+)\.([^\.]+).([^\.]+)', '\1');
+    l_payload_base64   := regexp_replace(p_jwt, '^([^\.]+)\.([^\.]+).([^\.]+)', '\2');
+    l_signature_base64 := regexp_replace(p_jwt, '^([^\.]+)\.([^\.]+).([^\.]+)', '\3');
+
+    l_header_json  := json_object_t.parse(base64url_decode(p_string => l_header_base64));
+    l_payload_json := json_object_t.parse(base64url_decode(p_string => l_payload_base64));
+
+    l_jwt.header.alg := l_header_json.get_string('alg');
+    l_jwt.header.typ := l_header_json.get_string('typ');
+
+    l_jwt.payload.iss := l_payload_json.get_string('iss');
+    l_jwt.payload.sub := l_payload_json.get_string('sub');
+    l_jwt.payload.aud := l_payload_json.get_string('aud');
+    l_jwt.payload.exp := epoch2timestamp(l_payload_json.get_number('exp'), p_timezone);
+    l_jwt.payload.nbf := epoch2timestamp(l_payload_json.get_number('nbf'), p_timezone);
+    l_jwt.payload.iat := epoch2timestamp(l_payload_json.get_number('iat'), p_timezone);
+    l_jwt.payload.jti := l_payload_json.get_string('jti');
+
+    l_payload_claims := l_payload_json.get_keys();
+
+    for i in 1 .. l_payload_claims.count loop
+      l_claim_name := l_payload_claims(i);
+      if l_claim_name not in ('iss', 'sub', 'aud', 'exp', 'nbf', 'iat', 'jti') then
+        l_jwt.payload.claims(l_claim_name) := l_payload_json.get_string(l_claim_name);
+      end if;
+    end loop;
+
+    l_jwt.signature := l_signature_base64;
+
+    return l_jwt;
+  end decode;
 end pkg_jwt;
 /
