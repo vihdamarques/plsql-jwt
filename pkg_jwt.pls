@@ -33,16 +33,21 @@ create or replace package pkg_jwt as
     claims t_claims -- Private / Public Claims
   );
   type r_jwt is record (
-    header    r_header,
-    payload   r_payload,
-    signature varchar2(32767)
+    header           r_header,
+    payload          r_payload,
+    header_base64    varchar2(32767),
+    payload_base64   varchar2(32767),
+    signature_base64 varchar2(32767)
   );
 
   function encode(p_header  in r_header  default cast(null as r_header),
                   p_payload in r_payload default cast(null as r_payload),
                   p_key     in varchar2) return varchar2;
 
-  function decode(p_jwt      in varchar2,
-                  p_timezone in varchar2 default sessiontimezone) return r_jwt;
+  function decode(p_jwt in varchar2) return r_jwt;
+
+  function verify(p_jwt       in varchar2,
+                  p_key       in varchar2,
+                  p_timestamp in timestamp with time zone default null) return boolean;
 end pkg_jwt;
 /
