@@ -16,6 +16,7 @@ Oracle Database 19c+
   - RSA-SHA384
   - RSA-SHA512
 - Decode JWT Token
+- Verify JWT Token against a key (Asymmetric or Plain Text) and Expiration Time (If Provided)
 
 ## Examples
 
@@ -36,7 +37,7 @@ begin
   l_payload.iss := 'my_issuer';
   l_payload.sub := 'my_subject';
   l_payload.aud := 'my_audience';
-  l_payload.iat := systimestamp at time zone 'UTC';
+  l_payload.iat := systimestamp;
   l_payload.exp := l_payload.iat + interval '1' hour; -- 1 hour expiration
   l_payload.claims('custom_role') := 'admin';
   --
@@ -66,7 +67,7 @@ begin
   l_payload.iss := 'my_issuer';
   l_payload.sub := 'my_subject';
   l_payload.aud := 'my_audience';
-  l_payload.iat := systimestamp at time zone 'UTC';
+  l_payload.iat := systimestamp;
   l_payload.exp := l_payload.iat + interval '1' hour; -- 1 hour expiration
   l_payload.claims('custom_role') := 'admin';
   --
@@ -89,8 +90,7 @@ declare
   l_jwt        pkg_jwt.r_jwt;
   l_claim_name pkg_jwt.s_claim_name;
 begin
-  l_jwt := pkg_jwt.decode(p_jwt      => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJteV9pc3N1ZXIiLCJzdWIiOiJteV9zdWJqZWN0IiwiYXVkIjoibXlfYXVkaWVuY2UiLCJleHAiOjE3NjkxMTAzMTcsIm5iZiI6bnVsbCwiaWF0IjoxNzY5MTA2NzE3LCJqdGkiOm51bGwsImN1c3RvbV9yb2xlIjoiYWRtaW4ifQ.63X6XXVrlGqA0kKu4s2Ct-302_PQsDC22-xGORkmYFM',
-                          p_timezone => 'UTC');
+  l_jwt := pkg_jwt.decode(p_jwt      => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJteV9pc3N1ZXIiLCJzdWIiOiJteV9zdWJqZWN0IiwiYXVkIjoibXlfYXVkaWVuY2UiLCJleHAiOjE3NjkxMTAzMTcsIm5iZiI6bnVsbCwiaWF0IjoxNzY5MTA2NzE3LCJqdGkiOm51bGwsImN1c3RvbV9yb2xlIjoiYWRtaW4ifQ.63X6XXVrlGqA0kKu4s2Ct-302_PQsDC22-xGORkmYFM');
   dbms_output.put_line('--- Header ---');
   dbms_output.put_line('alg: ' || l_jwt.header.alg);
   dbms_output.put_line('typ: ' || l_jwt.header.typ);
@@ -111,7 +111,22 @@ begin
   end loop;
 
   dbms_output.put_line('--- Signature ---');
-  dbms_output.put_line('sig: ' || l_jwt.signature);
+  dbms_output.put_line('sig: ' || l_jwt.signature_base64);
+end;
+/
+````
+
+### Verify
+
+````sql
+set serveroutput on size unlimited
+declare
+  l_valid boolean;
+begin
+  l_valid := pkg_jwt.verify(p_jwt       => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJteV9pc3N1ZXIiLCJzdWIiOiJteV9zdWJqZWN0IiwiYXVkIjoibXlfYXVkaWVuY2UiLCJleHAiOjE3NjkxMTAzMTcsIm5iZiI6bnVsbCwiaWF0IjoxNzY5MTA2NzE3LCJqdGkiOm51bGwsImN1c3RvbV9yb2xlIjoiYWRtaW4ifQ.63X6XXVrlGqA0kKu4s2Ct-302_PQsDC22-xGORkmYFM',
+                            p_key       => 'my_secret_key',
+                            p_timestamp => systimestamp);
+  dbms_output.put_line('JWT is ' || case when l_valid then 'Valid' else 'Invalid' end);
 end;
 /
 ````
