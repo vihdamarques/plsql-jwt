@@ -16,7 +16,7 @@ Oracle Database 19c+
   - RSA-SHA384
   - RSA-SHA512
 - Decode JWT Token
-- Verify JWT Token against a key (Asymmetric or Plain Text) and Expiration Time (if p_timestamp is provided)
+- Verify JWT Token against a key (Asymmetric or Plain Text), Expiration (exp) and Not Before (nbf) (if p_date is provided)
 
 ## Examples
 
