@@ -178,7 +178,6 @@ create or replace package body pkg_jwt as
     l_signed_data := l_jwt.header_base64 || '.' || l_jwt.payload_base64;
 
     return l_jwt.signature_base64 = sign(p_data => l_signed_data, p_key => p_key, p_alg => l_jwt.header.alg)
-           and (l_jwt.payload.exp is null or l_jwt.payload.exp >= p_timestamp);
+           and (p_timestamp is null or l_jwt.payload.exp is null or l_jwt.payload.exp >= p_timestamp);
   end verify;
 end pkg_jwt;
-/
