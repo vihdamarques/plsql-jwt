@@ -117,24 +117,17 @@ create or replace package body pkg_jwt as
 
   function decode(p_jwt in varchar2) return r_jwt is
     l_jwt              r_jwt;
-    l_header_base64    varchar2(32767);
-    l_payload_base64   varchar2(32767);
-    l_signature_base64 varchar2(32767);
     l_header_json      json_object_t := json_object_t();
     l_payload_json     json_object_t := json_object_t();
     l_payload_claims   json_key_list;
     l_claim_name       s_claim_name;
   begin
-    l_header_base64    := regexp_replace(p_jwt, '^([^\.]+)\.([^\.]+).([^\.]*)', '\1');
-    l_payload_base64   := regexp_replace(p_jwt, '^([^\.]+)\.([^\.]+).([^\.]*)', '\2');
-    l_signature_base64 := regexp_replace(p_jwt, '^([^\.]+)\.([^\.]+).([^\.]*)', '\3');
+    l_jwt.header_base64    := regexp_replace(p_jwt, '^([^\.]+)\.([^\.]+).([^\.]*)', '\1');
+    l_jwt.payload_base64   := regexp_replace(p_jwt, '^([^\.]+)\.([^\.]+).([^\.]*)', '\2');
+    l_jwt.signature_base64 := regexp_replace(p_jwt, '^([^\.]+)\.([^\.]+).([^\.]*)', '\3');
 
-    l_jwt.header_base64    := l_header_base64;
-    l_jwt.payload_base64   := l_payload_base64;
-    l_jwt.signature_base64 := l_signature_base64;
-
-    l_header_json  := json_object_t.parse(base64url_decode(p_string => l_header_base64));
-    l_payload_json := json_object_t.parse(base64url_decode(p_string => l_payload_base64));
+    l_header_json  := json_object_t.parse(base64url_decode(p_string => l_jwt.header_base64));
+    l_payload_json := json_object_t.parse(base64url_decode(p_string => l_jwt.payload_base64));
 
     l_jwt.header.alg := l_header_json.get_string('alg');
     l_jwt.header.typ := l_header_json.get_string('typ');
