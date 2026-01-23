@@ -90,7 +90,7 @@ declare
   l_jwt        pkg_jwt.r_jwt;
   l_claim_name pkg_jwt.s_claim_name;
 begin
-  l_jwt := pkg_jwt.decode(p_jwt      => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJteV9pc3N1ZXIiLCJzdWIiOiJteV9zdWJqZWN0IiwiYXVkIjoibXlfYXVkaWVuY2UiLCJleHAiOjE3NjkxMTAzMTcsIm5iZiI6bnVsbCwiaWF0IjoxNzY5MTA2NzE3LCJqdGkiOm51bGwsImN1c3RvbV9yb2xlIjoiYWRtaW4ifQ.63X6XXVrlGqA0kKu4s2Ct-302_PQsDC22-xGORkmYFM');
+  l_jwt := pkg_jwt.decode(p_jwt => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJteV9pc3N1ZXIiLCJzdWIiOiJteV9zdWJqZWN0IiwiYXVkIjoibXlfYXVkaWVuY2UiLCJleHAiOjE3NjkxMTAzMTcsIm5iZiI6bnVsbCwiaWF0IjoxNzY5MTA2NzE3LCJqdGkiOm51bGwsImN1c3RvbV9yb2xlIjoiYWRtaW4ifQ.63X6XXVrlGqA0kKu4s2Ct-302_PQsDC22-xGORkmYFM');
   dbms_output.put_line('--- Header ---');
   dbms_output.put_line('alg: ' || l_jwt.header.alg);
   dbms_output.put_line('typ: ' || l_jwt.header.typ);
