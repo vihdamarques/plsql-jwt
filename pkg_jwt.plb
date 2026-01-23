@@ -67,19 +67,30 @@ create or replace package body pkg_jwt as
     return case when l_signature is not null then base64url_encode(p_raw => l_signature) end;
   end sign;
 
-  function encode_header(p_header in r_header) return varchar2 is
-    l_header_json json_object_t := json_object_t();
-  begin
-    l_header_json.put('alg', p_header.alg);
-    l_header_json.put('typ', p_header.typ);
-
-    return base64url_encode(p_string => l_header_json.to_string());
-  end encode_header;
-
-  function encode_payload(p_payload in r_payload) return varchar2 is
+  function encode(p_header  in r_header  default cast(null as r_header),
+                  p_payload in r_payload default cast(null as r_payload),
+                  p_key     in varchar2) return varchar2 is
+    l_header_json  json_object_t := json_object_t();
     l_payload_json json_object_t := json_object_t();
     l_claim_name   s_claim_name;
+    --
+    l_header_base64    varchar2(32767);
+    l_payload_base64   varchar2(32767);
+    l_signature_base64 varchar2(32767);
+    l_jwt              varchar2(32767);
   begin
+    if not is_valid_alg(p_header.alg) then
+      raise_application_error(-20001, 'Invalid algorithm specified in header.');
+    end if;
+
+    if not is_valid_typ(p_header.typ) then
+      raise_application_error(-20002, 'Invalid type specified in header.');
+    end if;
+
+    l_header_json.put('alg', p_header.alg);
+    l_header_json.put('typ', p_header.typ);
+    l_header_base64  := base64url_encode(p_string => l_header_json.to_string());
+
     l_payload_json.put('iss', p_payload.iss);
     l_payload_json.put('sub', p_payload.sub);
     l_payload_json.put('aud', p_payload.aud);
@@ -94,28 +105,7 @@ create or replace package body pkg_jwt as
       l_payload_json.put(l_claim_name, p_payload.claims(l_claim_name));
       l_claim_name := p_payload.claims.next(l_claim_name);
     end loop;
-
-    return base64url_encode(p_string => l_payload_json.to_string());
-  end encode_payload;
-
-  function encode(p_header  in r_header  default cast(null as r_header),
-                  p_payload in r_payload default cast(null as r_payload),
-                  p_key     in varchar2) return varchar2 is
-    l_header_base64    varchar2(32767);
-    l_payload_base64   varchar2(32767);
-    l_signature_base64 varchar2(32767);
-    l_jwt              varchar2(32767);
-  begin
-    if not is_valid_alg(p_header.alg) then
-      raise_application_error(-20001, 'Invalid algorithm specified in header.');
-    end if;
-
-    if not is_valid_typ(p_header.typ) then
-      raise_application_error(-20002, 'Invalid type specified in header.');
-    end if;
-
-    l_header_base64  := encode_header(p_header => p_header);
-    l_payload_base64 := encode_payload(p_payload => p_payload);
+    l_payload_base64 := base64url_encode(p_string => l_payload_json.to_string());
 
     l_jwt := l_header_base64 || '.' || l_payload_base64;
 
@@ -180,7 +170,9 @@ create or replace package body pkg_jwt as
     l_signed_data := l_jwt.header_base64 || '.' || l_jwt.payload_base64;
 
     return l_jwt.signature_base64 = sign(p_data => l_signed_data, p_key => p_key, p_alg => l_jwt.header.alg)
-           and (p_date is null or l_jwt.payload.exp is null or l_jwt.payload.exp >= p_date);
+           and (p_date is null or l_jwt.payload.exp is null or l_jwt.payload.exp >= p_date)
+           and (p_date is null or l_jwt.payload.nbf is null or l_jwt.payload.nbf <  p_date)
+           ;
   end verify;
 end pkg_jwt;
 /
