@@ -30,7 +30,7 @@ declare
   l_header  pkg_jwt.r_header;
   l_payload pkg_jwt.r_payload;
   l_key     varchar2(4000) := 'my_secret_key';
-  l_jwt     varchar2(4000);
+  l_jwt     varchar2(32767);
 begin
   l_header.alg := pkg_jwt.C_ALG_HS256;
   --
@@ -60,7 +60,7 @@ declare
   l_header  pkg_jwt.r_header;
   l_payload pkg_jwt.r_payload;
   l_key     varchar2(4000) := ''; -- Load a base64 private key here
-  l_jwt     varchar2(4000);
+  l_jwt     varchar2(32767);
 begin
   l_header.alg := pkg_jwt.C_ALG_RS256;
   --
